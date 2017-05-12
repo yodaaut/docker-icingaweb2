@@ -1,16 +1,42 @@
-FROM centos:7
-MAINTAINER yodaaut
+#FROM centos:7
+#MAINTAINER yodaaut
+#ENV container docker
+#RUN (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i == \
+#								systemd-tmpfiles-setup.service ] || rm -f $i; done);			\
+#		rm -f /lib/systemd/system/multi-user.target.wants/*;									\
+#		rm -f /etc/systemd/system/*.wants/*;																	\
+#		rm -f /lib/systemd/system/local-fs.target.wants/*;										\
+#		rm -f /lib/systemd/system/sockets.target.wants/*udev*;								\
+#		rm -f /lib/systemd/system/sockets.target.wants/*initctl*;							\
+#		rm -f /lib/systemd/system/basic.target.wants/*;												\
+#		rm -f /lib/systemd/system/anaconda.target.wants/*;
+#
+#VOLUME [ "/sys/fs/cgroup" ]
+#
+#CMD [ "/usr/sbin/init" ]
 
+FROM local/c7-systemd
+ENV http_proxy=""
+ENV https_proxy=""
 COPY ./etc/pki/ca-trust/source/anchors/*.crt /etc/pki/ca-trust/source/anchors/
 RUN update-ca-trust
-ENV http_proxy=""
-RUN echo ${http_proxy}
+
+RUN ls /etc/pki/ca-trust/source/anchors
 RUN yum -y update
-RUN yum search nginx
-
+RUN	yum -y install epel-release
+RUN	yum -y install --enablerepo=epel nginx vim
+RUN yum clean all
+RUN systemctl enable nginx.service
 ADD app.conf /etc/nginx/sites-available/
-RUN rm /etc/nginx/sites-enabled/default && ln -s /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled
-
+COPY ./etc/nginx/nginx.conf /etc/nginx/nginx.conf
+RUN ls /etc/nginx/
+RUN mkdir /etc/nginx/sites-enabled 
+RUN ln -s /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled
 EXPOSE 80
+CMD [ "/usr/sbin/init" ]
 
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+#ENTRYPOINT ["nginx", "-g", "daemon off;"]
+
+
+#docker build --rm -t local/c7-systemd .
+#docker build --rm -t local/c7-systemd-nginx .
